@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html style="width: 100%; height: 100%;">
+	<head>
+		<title>Lab 1</title>
+	</head>
+	<body>
+	<script type="text/javascript">
+		var color = {rgb: [255, 255, 255], cmy: [0, 0, 0], hsv: [0, 0, 0], luv: [0, 0, 0], xyz: [0, 0, 0]};
+
+		var values = {
+			rgb: [],
+			cmy: [],
+			hsv: [],
+			luv: []
+		};
+
+		var sliders = {
+			rgb: [],
+			cmy: [],
+			hsv: [],
+			luv: []
+		};
+
+		var rounded = {
+			rgb: false,
+			cmy: false,
+			hsv: false,
+			luv: false
+		};
+
+		var maxValues = {
+			rgb: [255, 255, 255],
+			cmy: [255, 255, 255],
+			hsv: [360, 100, 100],
+			luv: [255, 255, 255]
+		};
+
+		var rgbInputs = [];
+		var cmyInputs = [];
+		var hsvInputs = [];
+		var luvInputs = [];
+
+		var roundedMsg = {};
+
+		var rgbHandlers = {
+			red: function(event) {
+				changeColor("rgb", 0, event);
+			},
+			green: function(event) {
+				changeColor("rgb", 1, event);
+			},
+			blue: function(event) {
+				changeColor("rgb", 2, event);
+			}
+		};
+		var cmyHandlers = {
+			cyan: function(event) {
+				changeColor("cmy", 0, event);
+			},
+			magenta: function(event) {
+				changeColor("cmy", 1, event);
+			},
+			yellow: function(event) {
+				changeColor("cmy", 2, event);
+			}
+		};
+		var hsvHandlers = {
+			hue: function(event) {
+				changeColor("hsv", 0, event);
+			},
+			saturation: function(event) {
+				changeColor("hsv", 1, event);
+			},
+			value: function(event) {
+				changeColor("hsv", 2, event);
+			}
+		};
+		var luvHandlers = {
+			lightness: function(event) {
+				changeColor("luv", 0, event);
+			},
+			u: function(event) {
+				changeColor("luv", 1, event);
+			},
+			v: function(event) {
+				changeColor("luv", 2, event);
+			}
+		};
+
+		var xyzValues = [];
+
+		var convertToRGB = {
+			cmy: function(cmy) {
+				var res = [255 - cmy[0], 255 - cmy[1], 255 - cmy[2]];
+				var i;
+				rounded.rgb = false;
+				rounded.hsv = false;
+				rounded.luv = false;
+				rounded.cmy = false;
+				for (i = 0; i < 3; i++) {
+					if (res[i] < 0) {
+						res[i] = 0;
+						rounded.rgb = true;
+						rounded.hsv = true;
+						rounded.luv = true;
+					}
+					if (res[i] > 255) {
+						res[i] = 255;
+						rounded.rgb = true;
+						rounded.hsv = true;
+						rounded.luv = true;
+					}
+				}
+				return res;
+			},
+			hsv: function(_hsv) {
+				var hsv = [_hsv[0], _hsv[1] / 100, _hsv[2] / 100];
+				var res = [0, 0, 0];
+				if (hsv[0] === 0) {
+				   	res = [hsv[2], hsv[2], hsv[2]];
+				} else {
+					var sector = Math.floor(hsv[0] / 60);
+					var frac = hsv[0] / 60 - sector;
+					var T = hsv[2] * (1 - hsv[1]);
+					var P = hsv[2] * (1 - hsv[1] * frac);
+					var Q = hsv[2] * (1 - hsv[1] * (1 - frac));
+
+					switch (sector) {
+						case 0: res = [hsv[2], Q, T]; break;
+						case 1: res = [P, hsv[2], T]; break;
+						case 2: res = [T, hsv[2], Q]; break;
+						case 3: res = [T, P, hsv[2]]; break;
+						case 4: res = [Q, T, hsv[2]]; break;
+						case 5: 
+						case 6:res = [hsv[2], T, P]; break;
+					}
+				}
+				res = [Math.round(res[0] * 255), Math.round(res[1] * 255), Math.round(res[2] * 255)];
+				rounded.rgb = false;
+				rounded.hsv = false;
+				rounded.luv = false;
+				rounded.cmy = false;
+				for (i = 0; i < 3; i++) {
+					if (res[i] < 0) {
+						res[i] = 0;
+						rounded.rgb = true;
+						rounded.cmy = true;
+						rounded.luv = true;
+					}
+					if (res[i] > 255) {
+						res[i] = 255;
+						rounded.rgb = true;
+						rounded.cmy = true;
+						rounded.luv = true;
+					}
+				}
+				return res;
+			},
+			luv: function(_luv) {
+				var luv = [_luv[0] / 100, _luv[1] / 100, _luv[2] / 100];
+				var x = luv[0] * 9 * luv[1] / (4 * luv[2]);
+				var z = luv[0] * (12 - 3 * luv[1] - 20 * luv[2]) / (4 * luv[2]);
+				var xyz = [x, luv[0], z];
+				color.xyz = [Math.round(xyz[0] * 100), Math.round(xyz[1] * 100), Math.round(xyz[2] * 100)];
+				var res = [0, 0, 0];
+				var M = [
+					[2.3706743, -0.9000405, -0.4706338],
+					[-0.5138850,  1.4253036,  0.0885814],
+					[0.0052982, -0.0146949,  1.0093968]
+ 				];
+				var i;
+				for (i = 0; i < 3; i++) {
+					res[i] = M[i][0] * xyz[0] + M[i][1] * xyz[1] + M[i][2] * xyz[2];
+					res[i] = Math.round(res[i] * 255);
+				}
+				rounded.rgb = false;
+				rounded.hsv = false;
+				rounded.luv = false;
+				rounded.cmy = false;
+				for (i = 0; i < 3; i++) {
+					if (res[i] < 0) {
+						res[i] = 0;
+						rounded.rgb = true;
+						rounded.hsv = true;
+						rounded.cmy = true;
+					}
+					if (res[i] > 255) {
+						res[i] = 255;
+						rounded.rgb = true;
+						rounded.hsv = true;
+						rounded.cmy = true;
+					}
+				}
+				return res;
+			}
+		};
+
+		var convertFromRGB = {
+			cmy: function(rgb) {
+				return [255 - rgb[0], 255 - rgb[1], 255 - rgb[2]];
+			},
+			hsv: function(rgb) {
+				var res = [0, 0, 0];
+				var r = rgb[0] / 255, g = rgb[1] / 255, b = rgb[2] / 255;
+				var maxVal = Math.max(r, g, b);
+				var minVal = Math.min(r, g, b);
+				res[2] = Math.round(maxVal * 100);
+
+				if (maxVal === 0) {
+					res[1] = 0;
+				} else {
+				    res[1] = Math.round(100 * (maxVal - minVal) / maxVal);
+				}
+				if (res[1] !== 0) {
+					if (r === maxVal) {
+         				res[0] = (g - b) / (maxVal - minVal);
+         			} else if (g === maxVal) {
+				        res[0] = 2 + (b - r) / (maxVal - minVal);
+				    } else if (b === maxVal) {
+			         	res[0] = 4 + (r - g) / (maxVal - minVal );
+				    }
+					res[0] *= 60;
+					res[0] = Math.round(res[0]);
+					if (res[0] < 0 )
+        			res[0] += 360;
+     			}
+
+				return res;
+			},
+			luv: function(rgb) {
+				var res = [0, 0, 0];
+				var M = [
+					[0.4887180,  0.3106803,  0.2006017],
+ 					[0.1762044,  0.8129847,  0.0108109],
+ 					[0.0000000,  0.0102048, 0.9897952]
+ 				];
+				var i;
+				for (i = 0; i < 3; i++) {
+					res[i] = M[i][0] * rgb[0] / 255 + M[i][1] * rgb[1] / 255 + M[i][2] * rgb[2] / 255;
+				}
+				color.xyz = [Math.round(res[0] * 100), Math.round(res[1] * 100), Math.round(res[2] * 100)];
+				var u = 4 * res[0] / (res[0] + 15 * res[1] + 3 * res[2]);
+				var v = 9 * res[1] / (res[0] + 15 * res[1] + 3 * res[2]);
+				return [Math.round(res[1] * 100), Math.round(u * 100), Math.round(v * 100)];
+			}
+		};
+
+		/* General */
+
+		var body = document.getElementsByTagName("body")[0];
+		var layout = createEl("div", [["id", "layout"]], [["position", "relative"], ["width", "100%"], ["height", "100%"], ["padding", "20px"]], body);
+
+		var sectionStyles = [["margin", "20px auto"], ["border", "1px solid gray"], ["borderRadius", "5px"], ["backgroundColor", "rgba(255,255,255,0.3)"], ["textAlign", "center"], ["width", "50%"]];
+		var sectionInit = createEl("div", [], sectionStyles, layout);
+		var sectionRGB = createEl("div", [], sectionStyles, layout);
+		var sectionCMY = createEl("div", [], sectionStyles, layout);
+		var sectionHSV = createEl("div", [], sectionStyles, layout);
+		var sectionLUV = createEl("div", [], sectionStyles, layout);
+		var sectionXYZ = createEl("div", [], sectionStyles, layout);
+
+		createEl("span", [], [["font-size", "1.6em"]], sectionRGB, "RGB");
+		createEl("span", [], [["font-size", "1.6em"]], sectionCMY, "CMY");
+		createEl("span", [], [["font-size", "1.6em"]], sectionHSV, "HSV");
+		createEl("span", [], [["font-size", "1.6em"]], sectionLUV, "Lu'v'");
+		createEl("span", [], [["font-size", "1.6em"]], sectionXYZ, "XYZ");
+
+		var roundedStyles = [["color", "red"], ["font-size", "1.6em"]];
+		roundedMsg.rgb = createEl("span", [], roundedStyles, sectionRGB);
+		roundedMsg.cmy = createEl("span", [], roundedStyles, sectionCMY);
+		roundedMsg.hsv = createEl("span", [], roundedStyles, sectionHSV);
+		roundedMsg.luv = createEl("span", [], roundedStyles, sectionRGB);
+
+		var table, row, cell, sliderAttrs;
+
+		/* Initial */
+
+		table = createEl("table", [], [["margin", "auto"]], sectionInit);
+
+		row = createEl("tr", [], [], table);
+		createEl("td", [], [], row);
+		createEl("td", [], [], row, "Choose color");
+		createEl("td", [], [], row);
+
+		row = createEl("tr", [], [], table);
+		createEl("td", [], [], row);
+		cell = createEl("td", [], [], row);
+		var colorInput = createEl("input", [["type", "color"], ["value", "#ffffff"]], [], cell, null, changeColorHex);
+		createEl("td", [], [], row);
+
+		/* RGB */
+
+		table = createEl("table", [], [["margin", "auto"]], sectionRGB);
+		sliderAttrs = [["type", "range"], ["min", "0"], ["max", "255"], ["value", "255"]];
+
+		row = createEl("tr", [], [], table);
+		createEl("td", [], [], row, "Red");
+		cell = createEl("td", [], [], row);
+		sliders.rgb[0] = createEl("input", sliderAttrs, [], cell, null, rgbHandlers.red);
+		cell = createEl("td", [], [], row, null);
+		rgbInputs[0] = createEl("input", [["type", "number"], ["min", "0"], ["max", "255"], ["value", "255"], ["placeholder", "Red"]], [], cell, null, rgbHandlers.red);
+
+		row = createEl("tr", [], [], table);
+		createEl("td", [], [], row, "Green");
+		cell = createEl("td", [], [], row);
+		sliders.rgb[1] = createEl("input", sliderAttrs, [], cell, null, rgbHandlers.green);
+		cell = createEl("td", [], [], row, null);
+		rgbInputs[1] = createEl("input", [["type", "number"], ["min", "0"], ["max", "255"], ["value", "255"]], [], cell, null, rgbHandlers.green);
+
+		row = createEl("tr", [], [], table);
+		createEl("td", [], [], row, "Blue");
+		cell = createEl("td", [], [], row);
+		sliders.rgb[2] = createEl("input", sliderAttrs, [], cell, null, rgbHandlers.blue);
+		cell = createEl("td", [], [], row, null);
+		rgbInputs[2] = createEl("input", [["type", "number"], ["min", "0"], ["max", "255"], ["value", "255"]], [], cell, null, rgbHandlers.blue);
+
+		/* CMY */
+
+		table = createEl("table", [], [["margin", "auto"]], sectionCMY);
+		sliderAttrs = [["type", "range"], ["min", "0"], ["max", "255"], ["value", "255"]];
+
+		row = createEl("tr", [], [], table);
+		createEl("td", [], [], row, "Cyan");
+		cell = createEl("td", [], [], row);
+		sliders.cmy[0] = createEl("input", sliderAttrs, [], cell, null, cmyHandlers.cyan);
+		cell = createEl("td", [], [], row, null);
+		cmyInputs[0] = createEl("input", [["type", "number"], ["min", "0"], ["max", "255"], ["value", "255"]], [], cell, null, cmyHandlers.cyan);
+
+		row = createEl("tr", [], [], table);
+		createEl("td", [], [], row, "Magenta");
+		cell = createEl("td", [], [], row);
+		sliders.cmy[1] = createEl("input", sliderAttrs, [], cell, null, cmyHandlers.magenta);
+		cell = createEl("td", [], [], row, null);
+		cmyInputs[1] = createEl("input", [["type", "number"], ["min", "0"], ["max", "255"], ["value", "255"]], [], cell, null, cmyHandlers.magenta);
+
+		row = createEl("tr", [], [], table);
+		createEl("td", [], [], row, "Yellow");
+		cell = createEl("td", [], [], row);
+		sliders.cmy[2] = createEl("input", sliderAttrs, [], cell, null, cmyHandlers.yellow);
+		cell = createEl("td", [], [], row, null);
+		cmyInputs[2] = createEl("input", [["type", "number"], ["min", "0"], ["max", "255"], ["value", "255"]], [], cell, null, cmyHandlers.yellow);
+
+		/* HSV */
+
+		table = createEl("table", [], [["margin", "auto"]], sectionHSV);
+		sliderAttrs = [["type", "range"], ["min", "0"], ["max", "100"], ["value", "0"]];
+
+		row = createEl("tr", [], [], table);
+		createEl("td", [], [], row, "Hue");
+		cell = createEl("td", [], [], row);
+		sliders.hsv[0] = createEl("input", [["type", "range"], ["min", "0"], ["max", "360"], ["value", "0"]], [], cell, null, hsvHandlers.hue);
+		cell = createEl("td", [], [], row, null);
+		hsvInputs[0] = createEl("input", [["type", "number"], ["min", "0"], ["max", "360"], ["value", "0"]], [], cell, null, hsvHandlers.hue);
+
+		row = createEl("tr", [], [], table);
+		createEl("td", [], [], row, "Saturation");
+		cell = createEl("td", [], [], row);
+		sliders.hsv[1] = createEl("input", sliderAttrs, [], cell, null, hsvHandlers.saturation);
+		cell = createEl("td", [], [], row, null);
+		hsvInputs[1] = createEl("input", [["type", "number"], ["min", "0"], ["max", "100"], ["value", "0"]], [], cell, null, hsvHandlers.saturation);
+
+		row = createEl("tr", [], [], table);
+		createEl("td", [], [], row, "Value");
+		cell = createEl("td", [], [], row);
+		sliders.hsv[2] = createEl("input", sliderAttrs, [], cell, null, hsvHandlers.value);
+		cell = createEl("td", [], [], row, null);
+		hsvInputs[2] = createEl("input", [["type", "number"], ["min", "0"], ["max", "100"], ["value", "0"]], [], cell, null, hsvHandlers.value);
+
+		/* Lu'v' */
+
+		table = createEl("table", [], [["margin", "auto"]], sectionLUV);
+		sliderAttrs = [["type", "range"], ["min", "0"], ["max", "100"], ["value", "0"]];
+
+		row = createEl("tr", [], [], table);
+		createEl("td", [], [], row, "L");
+		cell = createEl("td", [], [], row);
+		sliders.luv[0] = createEl("input", sliderAttrs, [], cell, null, luvHandlers.lightness);
+		cell = createEl("td", [], [], row, null);
+		luvInputs[0] = createEl("input", [["type", "number"], ["min", "0"], ["max", "100"], ["value", "0"]], [], cell, null, luvHandlers.lightness);
+
+		row = createEl("tr", [], [], table);
+		createEl("td", [], [], row, "u'");
+		cell = createEl("td", [], [], row);
+		sliders.luv[1] = createEl("input", sliderAttrs, [], cell, null, luvHandlers.u);
+		cell = createEl("td", [], [], row, null);
+		luvInputs[1] = createEl("input", [["type", "number"], ["min", "0"], ["max", "100"], ["value", "0"]], [], cell, null, luvHandlers.u);
+
+		row = createEl("tr", [], [], table);
+		createEl("td", [], [], row, "v");
+		cell = createEl("td", [], [], row);
+		sliders.luv[2] = createEl("input", sliderAttrs, [], cell, null, luvHandlers.v);
+		cell = createEl("td", [], [], row, null);
+		luvInputs[2] = createEl("input", [["type", "number"], ["min", "0"], ["max", "100"], ["value", "0"]], [], cell, null, luvHandlers.v);
+
+		/* XYZ */
+
+		table = createEl("table", [], [["margin", "auto"]], sectionXYZ);
+		row = createEl("tr", [], [], table);
+		createEl("td", [], [], row, "X:");
+		xyzValues[0] = createEl("td", [], [], row, "");
+		row = createEl("tr", [], [], table);
+		createEl("td", [], [], row, "Y:");
+		xyzValues[1] = createEl("td", [], [], row, "");
+		row = createEl("tr", [], [], table);
+		createEl("td", [], [], row, "Z:");
+		xyzValues[2] = createEl("td", [], [], row, "");
+
+		calculateColor('rgb');
+		updateColor();
+
+		function createEl(tagName, attrs, styles, parent, innerText, handler) {
+			var el = document.createElement(tagName);
+			var i;
+			for (i = 0; i < attrs.length; i++) {
+				el.setAttribute(attrs[i][0], attrs[i][1]);
+			}
+			for (i = 0; i < styles.length; i++) {
+				el.style[styles[i][0]] = styles[i][1];
+			}
+			if (innerText) {
+				el.innerText = innerText;
+			}
+			if (handler) {
+				el.addEventListener("input", handler);
+			}
+			parent.appendChild(el);
+			return el;
+		};
+
+		function changeColor(schema, idx, event) {
+			var newValue = parseInt(event.target.value || "0");
+			newValue = newValue > maxValues[schema][idx] ? maxValues[schema][idx] : newValue;
+			color[schema][idx] = newValue;
+
+			calculateColor(schema);
+			updateColor();
+		};
+
+		function changeColorHex(event) {
+			var newColor = hexToRgb(event.target.value);
+			color.rgb[0] = newColor.r;
+			color.rgb[1] = newColor.g;
+			color.rgb[2] = newColor.b;
+
+			calculateColor('rgb');
+			updateColor();
+		};
+
+		function updateColor() {
+			var i = 0;
+			for (i = 0; i < 3; i++) {
+				rgbInputs[i].value = color.rgb[i].toString();
+				sliders.rgb[i].value = color.rgb[i].toString();
+				sliders.cmy[i].value = color.cmy[i].toString();
+				sliders.hsv[i].value = color.hsv[i].toString();
+				sliders.luv[i].value = color.luv[i].toString();
+				rgbInputs[i].value = color.rgb[i].toString();
+				cmyInputs[i].value = color.cmy[i].toString();
+				hsvInputs[i].value = color.hsv[i].toString();
+				luvInputs[i].value = color.luv[i].toString();
+				roundedMsg.rgb.innerText = rounded.rgb ? '!!!' : '';
+				roundedMsg.cmy.innerText = rounded.cmy ? '!!!' : '';
+				roundedMsg.hsv.innerText = rounded.hsv ? '!!!' : '';
+				roundedMsg.luv.innerText = rounded.luv ? '!!!' : '';
+				xyzValues[i].innerText = color.xyz[i];
+			}
+			colorInput.value = rgbToHex(color.rgb[0], color.rgb[1], color.rgb[2]);
+			var layoutDiv = document.getElementById("layout");
+			var newColor = rgbToHex(color.rgb[0], color.rgb[1], color.rgb[2]);
+			layoutDiv.style.backgroundColor = newColor;
+		};
+
+		function componentToHex(c) {
+			var hex = c.toString(16);
+			return hex.length == 1 ? "0" + hex : hex;
+		};
+
+		function rgbToHex(r, g, b) {
+		    return "#" + componentToHex(r) + componentToHex(g) + componentToHex(b);
+		};
+
+		function hexToRgb(hex) {
+		    var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+		    return result ? {
+		        r: parseInt(result[1], 16),
+		        g: parseInt(result[2], 16),
+		        b: parseInt(result[3], 16)
+		    } : null;
+		};
+
+		function calculateColor(schema) {
+			if (schema !== 'rgb') {
+				color.rgb = convertToRGB[schema](color[schema]);
+			}
+			
+			if (schema !== 'cmy') {
+				color.cmy = convertFromRGB.cmy(color.rgb);
+			}
+			if (schema !== 'hsv') {
+				color.hsv = convertFromRGB.hsv(color.rgb);
+			}
+			if (schema !== 'luv') {
+				color.luv = convertFromRGB.luv(color.rgb);
+			}
+		};
+	</script>
+	</body>
+</html>
